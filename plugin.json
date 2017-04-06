@@ -1,0 +1,17 @@
+[{
+    "author": "Ronny De Jesus",
+    "version": "0.0.1",
+    "name": "Wollok",
+    "url": "https://github.com/nnydjesus/codilad-wollok-plugin",
+    "rightbar": [{
+        "action": "codiad.Wollok.SOME_METHOD();",
+        "icon": "icon-info-circled",
+        "title": "This will be displayed in the rightbar"
+    }],
+    "contextmenu": [{
+        "action": "codiad.Wollok.SOME_METHOD();",
+        "icon": "icon-info-circled",
+        "applies-to": "both",
+        "title": "This will be displayed in the contextmenu"
+    }]
+}]
