@@ -1,0 +1,9 @@
+{
+    "object": {
+        "LBRACE": "Error en la declaración del objeto. ",
+        "INHERITS": "Error en la declaración del objeto."
+    }, 
+    "Var": { 
+        
+    }
+}

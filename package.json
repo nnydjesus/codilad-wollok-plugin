@@ -1,0 +1,40 @@
+{
+  "author": "Ronny De Jesus",
+  "name": "codiad-wollok-plugin",
+  "description": "Plugin de Wollok para Codiad",
+  "version": "0.0.1",
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": {
+    "dev": "gulp build; node output.js",
+    "compile": "babel --stage 0 src/parser.js --out-file output.js",
+    "test": "./node_modules/.bin/babel-node --presets es2015,stage-0 --plugins add-module-exports ./test/errorTests.js",
+    "cm": "browserify -d -t [ babelify ] parser.js -0 bundle.js"
+  },
+  "keywords": [
+    "wollok",
+    "codiad"
+  ],
+  "preferGlobal": true,
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/nnydjesus/codilad-wollok-plugin.git"
+  },
+  "dependencies": {
+    "babel": "^6.23.0",
+    "babelify": "6.3.0",
+    "browserify": "^14.3.0",
+    "gulp": "^3.9.1",
+    "gulp-sourcemaps": "^2.5.1",
+    "jison": "nnydjesus/jison",
+    "lodash": "^4.17.4",
+    "rimraf": "^2.6.1",
+    "underscore": "1.8.3",
+    "vinyl-buffer": "^1.0.0",
+    "vinyl-source-stream": "^1.1.0",
+    "watchify": "^3.9.0"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.24.1"
+  }
+}
