@@ -186,7 +186,7 @@ class ASTError {
         this.expected = err.hash.expected
         this.token = err.hash.token
         err.used = true
-        this.message = errorText[this.ast][this.expected[0].replace('"', '').replace('"', '')]
+        // this.message = errorText[this.ast][this.expected[0].replace('"', '').replace('"', '')]
         if(!this.message)
             this.message = err.hash.errStr
     }
@@ -282,7 +282,8 @@ class VarDeclaration {
 
 class Method{
 
-    constructor(name, params, block, location) {
+    constructor(override, name, params, block, location) {
+        this.override = override
         this.name = name
         this.params = params
         this.block = block
@@ -307,6 +308,41 @@ class Method{
         } else {
             var rep = "( Method" + ENTER +
                 this.name.tab() +
+                this.block.toString() +
+                ")"
+        }
+
+        return rep.tab()
+    }
+
+}
+
+
+class Block{
+
+    constructor(expresions, location) {
+        this.expresions = expresions
+        this.location = location
+    }
+
+    hasError() {
+        return this.error 
+    }
+
+    errors() {
+        let errors = []
+        if (this.error) {
+            errors.push(this.error)
+        }
+        return errors
+    }
+
+    toString() {
+        if (this.error) {
+            var rep = this.error.toString()
+        } else {
+            var rep = "( Block" + ENTER +
+                    this.expresions.serializeElements() +
                 ")"
         }
 
@@ -341,9 +377,50 @@ class ExprValue {
     }
 }
 
-class ExprConstNum extends ExprValue {}
+class AssignExpression{
+     constructor(variable, expression) {
+        this.location = expression.location
+        this.variable = variable
+        this.expression = expression
+    }
 
+    toString() {
+        var rep = "(" + this.constructor.name + ENTER +
+            this.variable + ENTER +
+            this.expression.toString()+
+            ")"
+        return rep.tab()
+    }
+
+    hasError() {
+        return this.error
+    }
+
+    errors() {
+        let errors =  []
+        if (this.error) {
+            errors.push(this.error)
+        }
+        return errors
+    }
+}
+
+
+class StmtAssign extends AssignExpression {
+    constructor(variable, expression, location) {
+        super(variable, expression)
+        this.location = location
+    }
+}
+class Assign extends AssignExpression {}
+class AssignAdd extends AssignExpression {}
+class AssignSub extends AssignExpression {}
+class AssignMul extends AssignExpression {}
+class AssignDiv extends AssignExpression {}
+
+class ExprConstNum extends ExprValue {}
 class ExprConstBool extends ExprValue {}
+class ExprConstString extends ExprValue {}
 
 class ExprVar extends ExprValue {}
 
@@ -355,7 +432,7 @@ class UnaryExpr {
 
      toString() {
         var rep = "(" + this.constructor.name + ENTER +
-            this.expresion.toString +
+            this.expresion.toString() +
             ")"
         return rep.tab()
     }
@@ -465,6 +542,86 @@ class ExprGt extends BinaryExpr {
     }
 }
 
+//Exp Con id y expresiones
+class Call  {
+    constructor(receptor, id, expressions, location) {
+        this.receptor = receptor
+        this.location = location
+        this.id = id
+        this.expressions = expressions
+    }
+
+    toString() {
+        var rep = "(" + this.constructor.name + ENTER +
+            this.receptor.toString() + "." +this.id + ENTER +
+                this.expressions.serializeElements() +
+            ")"
+        return rep.tab()
+    }
+
+    hasError() {
+        return this.error
+    }
+
+    errors() {
+        let errors =  []
+        if (this.error) {
+            errors.push(this.error)
+        }
+        return errors
+    }
+}
+
+class StmtCall extends Call {}
+class ExprCall extends Call {}
+
+
+class StmtExpresionBlock {
+    constructor(expresion, block, location) {
+        this.expresion = expresion
+        this.location = location
+        this.block = block
+    }
+
+     toString() {
+        var rep = "(" + this.constructor.name + ENTER +
+            this.expresion.toString()+ ENTER +
+                this.block.toString() + ENTER +
+            ")"
+        return rep.tab()
+    }
+
+    hasError() {
+        return this.error
+    }
+
+    errors() {
+        let errors =  []
+        if (this.error) {
+            errors.push(this.error)
+        }
+        return errors
+    }
+}
+
+class StmtWhile extends StmtExpresionBlock {}
+class StmtIf extends StmtExpresionBlock {}
+class StmtIfElse extends StmtIf {
+    constructor(expresion, block, elseBlock, location) {
+        super(expresion, block, location)
+        this.elseBlock = elseBlock
+    }
+
+    toString() {
+        var rep = "(" + this.constructor.name + ENTER +
+            this.expresion.toString()+ ENTER +
+                this.block.toString() + ENTER +
+                this.elseBlock.toString() + ENTER +
+            ")"
+        return rep.tab()
+    }
+}
+
 
 export default {
     Location,
@@ -474,6 +631,7 @@ export default {
     VarDeclaration,
     ExprConstNum,
     ExprConstBool,
+    ExprConstString,
     ExprVar,
     ExprAdd,
     ExprSub,
@@ -491,6 +649,19 @@ export default {
     Package,
     WClass,
     Method,
+    Block,
     Mixin,
-    Parent
+    Parent,
+    StmtAssign,
+    Assign,
+    AssignAdd,
+    AssignSub,
+    AssignMul,
+    AssignDiv,
+    StmtReturn,
+    StmtCall,
+    StmtIf,
+    StmtWhile,
+    StmtIfElse,
+    ExprCall
 }

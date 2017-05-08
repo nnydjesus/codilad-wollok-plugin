@@ -44,6 +44,8 @@ export function stringToken(yytext) {
             return 'IMPORT'
         case 'method':
             return 'METHOD'
+        case 'override':
+            return 'OVERRIDE'
         default:
             return 'ID'
     }
@@ -51,11 +53,19 @@ export function stringToken(yytext) {
 
 export const grammar = {
     "lex": {
+         "macros": {
+            "digit": "[0-9]",
+            "esc": "\\\\",
+            "int": "-?(?:[0-9]|[1-9][0-9]+)",
+            "exp": "(?:[eE][-+]?[0-9]+)",
+            "frac": "(?:\\.[0-9]+)"
+        },
         "rules": [
             ["\\s+", "/* skip whitespace */"],
             ["//[/ a-zA-Z0-9,:_()/><!=+.]*", "/* skip comment */"],
             ["$", "return 'EOF'"],
-            ["[0-9]+", "return 'NUM'"],
+            ["{int}{frac}?{exp}?\\b", "return 'NUM';"],
+            ["\"(?:{esc}[\"bfnrt/{esc}]|{esc}u[a-fA-F0-9]{4}|[^\"{esc}])*\"", "yytext = yytext.substr(1,yyleng-2); return 'STRING';"],
             ["\\(", "return 'LPAREN'"],
             ["\\)", "return 'RPAREN'"],
             ["\\[", "return 'LBRACK'"],
@@ -64,7 +74,6 @@ export const grammar = {
             ["\\}", "return 'RBRACE'"],
             ["\\,", "return 'COMMA'"],
             ["\\.", "return 'DOT'"],
-            ["\\=", "return 'ASSIGN'"],
             ["\\:", "return 'COLON'"],
             ["\\#", "return 'HASH'"],
             ["\\<=", "return 'LE'"],
@@ -73,6 +82,11 @@ export const grammar = {
             ["\\>", "return 'GT'"],
             ["\\==", "return 'EQ'"],
             ["\\!=", "return 'NE'"],
+            ["\\+=", "return 'PLUSA'"],
+            ["\\-=", "return 'MINUSA'"],
+            ["\\*=", "return 'TIMESA'"],
+            ["\\/=", "return 'DIVA'"],
+            ["\\=", "return 'ASSIGN'"],
             ["\\+", "return 'PLUS'"],
             ["\\-", "return 'MINUS'"],
             ["\\*", "return 'TIMES'"],
@@ -86,8 +100,8 @@ export const grammar = {
     "tokens": "OBJECT, CLASS, MIXIN, PACKAGE, IMPORT, METHOD, BOOL, INT, VEC, TRUE, FALSE, AND, ELSE, FUN, IF, NOT, OR, RETURN, WHILE, INHERITS, VAR, LBRACE, RBRACE,SEPARATOR,.",
 
     "operators": [
-        ["left", "TIMES", "DIV"],
-        ["left", "PLUS", "MINUS"],
+        ["left", "TIMESA", "DIVA", "TIMES", "DIV"],
+        ["left", "PLUSA", "MINUSA", "PLUS", "MINUS"],
         ["nonassoc", "LE", "GE", "LT", "GT", "EQ", "NE"],
         ["left", "NOT"],
         ["left", "AND", "OR"]
@@ -189,24 +203,51 @@ export const grammar = {
             ["", "$$ = undefined"],
             ["ASSIGN", "$$ = $1"]
         ],
+        "MULTI_ASSIGN": [
+            ["ASSIGN", "$$ = Assign"],
+            ["PLUSA", "$$ = AssignAdd"],
+            ["MINUSA", "$$ = AssignSub"],
+            ["TIMESA", "$$ = AssingMul"],
+            ["DIVA", "$$ = AssignDiv"]
+        ],
 
         "member": [
-            ["variable", "$$ = $1"],
+            ["variable_declaration", "$$ = $1"],
             ["method", "$$ = $1"],
         ],
 
-        "variable": [
+        "variable_declaration":[
             ["writeable ID ASSIGN? expresion?", "$$ = new VarDeclaration($2, $4, $1, new Location(@1, @4))"],
             ["error", "$$ =new ASTError(this._$.error, 'Var');"]
         ],
-
+        
         "method": [
-            ["METHOD ID LPAREN params RPAREN LBRACE block RBRACE", "$$ = new Method($2, $4, $7, new Location(@1, @8))"]
+            ["override? METHOD ID LPAREN params RPAREN LBRACE block RBRACE", "$$ = new Method($1, $3, $5, $8, new Location(@1, @9))"]
         ],
+
+       "override?":[
+           ["OVERRIDE", "$$= true"],
+           ["", "$$= false"]
+       ],
 
         "block": [
-            ["", "$$ = {}"]
+            ["block_expressions", "$$ =  new Block($1, new Location(@1, @1))"],
         ],
+
+        "block_expressions": [
+            ["", "$$ = [];"],
+            ["instruccion block_expressions", "$2.push($1); $$ = $2"],
+            
+        ],
+
+         "instruccion": [
+            ["ID MULTI_ASSIGN expresion?", "$$ = new StmtAssign($1, new $2($1, $3),  new Location(@1, @3))"],
+            ["RETURN expresion", "$$ = new StmtReturn($2, new Location(@1, @2));"],
+            ["ID DOT ID LPAREN lista_expresiones RPAREN", "$$ = new StmtCall($1, $3, $5, new Location(@1, @5));"],
+            ["expresion LPAREN lista_expresiones RPAREN", "$$ = new StmtCall('this', $1, $3, new Location(@1, @3));"],
+            ["IF expresion LBRACE block RBRACE", "$$ = new StmtIf($2, $4, new Location(@1, @5));"],
+            ["IF expresion LBRACE block RBRACE ELSE LBRACE block RBRACE", "$$ = new StmtIfElse($2, $4, $8, new Location(@1, @9));"],
+         ],
 
         "writeable": [
             ["VAR", "$$ = $1"],
@@ -214,12 +255,12 @@ export const grammar = {
         ],
 
         "lista_expresiones_no_vacia": [
-            ["expresion", "$$ = new Arrays($1)"],
-            ["expresion COMMA lista_expresiones_no_vacia", "$$ = $3.add($1);"]
+            ["expresion", "$$ = [$1]"],
+            ["expresion COMMA lista_expresiones_no_vacia", "$3.push($1); $$ = $3;"]
         ],
 
         "lista_expresiones": [
-            ["", "$$ = new Arrays();"],
+            ["", "$$ = [];"],
             ["lista_expresiones_no_vacia", "$$ = $1;"]
         ],
 
@@ -241,7 +282,10 @@ export const grammar = {
             ["NUM", "$$ = new ExprConstNum(yytext, new Location(@1, @1))"],
             ["TRUE", "$$ = new ExprConstBool('True', new Location(@1, @1))"],
             ["FALSE", "$$ = new ExprConstBool('False', new Location(@1, @1))"],
+            ["STRING", "$$ = new ExprConstString($1, new Location(@1, @1))"],
             ["LPAREN expresion RPAREN", "$$ = $2"],
+            ["expresion DOT ID LPAREN lista_expresiones RPAREN", "$$ = new ExprCall($1, $3, $5, new Location(@1, @6))"],
+            ["ID LPAREN lista_expresiones RPAREN", "$$ = new ExprCall('this', $1, $3, new Location(@1, @4))"],
             ["error", "$$ =new ASTError(this._$.error, 'expresion_atomica');"],
         ],
 

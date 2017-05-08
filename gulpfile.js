@@ -11,7 +11,7 @@ var path = require('path');
 var config = {
     entryFile: './src/index.js',
     outputDir: './',
-    outputFile: 'output.js'
+    outputFile: 'init.js'
 };
 
 
